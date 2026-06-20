@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Workout Tracker</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0d1a; font-family: -apple-system, 'Inter', system-ui, sans-serif; }
+    input:focus { outline: none; border-color: #E8642A !important; }
+    ::-webkit-scrollbar { width: 0; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const SESSIONS = [
+  {
+    id: "A",
+    name: "Séance A",
+    focus: "Pecs · Triceps · Épaules",
+    color: "#E8642A",
+    exercises: [
+      { id: "a1", name: "Développé convergent", sets: 5, reps: 6, targetWeight: 78 },
+      { id: "a2", name: "Développé incliné haltères", sets: 4, reps: 8, targetWeight: null },
+      { id: "a3", name: "Triceps poulie", sets: 4, reps: 10, targetWeight: null },
+      { id: "a4", name: "Élévations latérales", sets: 3, reps: 12, targetWeight: null },
+    ],
+  },
+  {
+    id: "B",
+    name: "Séance B",
+    focus: "Dos · Biceps",
+    color: "#2A7BE8",
+    exercises: [
+      { id: "b1", name: "Soulevé de terre", sets: 4, reps: 5, targetWeight: null },
+      { id: "b2", name: "Tractions", sets: 5, reps: 8, targetWeight: null },
+      { id: "b3", name: "Biceps poulie", sets: 4, reps: 10, targetWeight: null },
+      { id: "b4", name: "Rowing", sets: 3, reps: 12, targetWeight: null },
+    ],
+  },
+  {
+    id: "C",
+    name: "Séance C",
+    focus: "Jambes · Fessiers",
+    color: "#2ABA6E",
+    exercises: [
+      { id: "c1", name: "Hip thrust machine", sets: 5, reps: 8, targetWeight: null },
+      { id: "c2", name: "Fentes haltères", sets: 4, reps: 10, targetWeight: 10 },
+      { id: "c3", name: "Leg curl", sets: 4, reps: 10, targetWeight: null },
+      { id: "c4", name: "Mollets", sets: 3, reps: 15, targetWeight: null },
+    ],
+  },
+  {
+    id: "D",
+    name: "Séance D",
+    focus: "Pecs · Triceps · Épaules",
+    color: "#E8642A",
+    exercises: [
+      { id: "d1", name: "Développé convergent", sets: 5, reps: 6, targetWeight: 78 },
+      { id: "d2", name: "Développé incliné haltères", sets: 4, reps: 8, targetWeight: null },
+      { id: "d3", name: "Triceps poulie", sets: 4, reps: 10, targetWeight: null },
+      { id: "d4", name: "Élévations latérales", sets: 3, reps: 12, targetWeight: null },
+    ],
+  },
+];
+
+const WEEK_PLAN = [
+  { day: "Lundi", sessionId: "A" },
+  { day: "Mardi", sessionId: "B" },
+  { day: "Mercredi", sessionId: null },
+  { day: "Jeudi", sessionId: "C" },
+  { day: "Vendredi", sessionId: "D" },
+  { day: "Samedi", sessionId: null },
+  { day: "Dimanche", sessionId: null },
+];
+
+function WorkoutLogger({ session, onBack, history, onSave }) {
+  const today = new Date().toISOString().split("T")[0];
+  const existing = history[today]?.[session.id] || {};
+  const [data, setData] = React.useState(() => {
+    const init = {};
+    session.exercises.forEach(ex => {
+      init[ex.id] = {
+        done: existing[ex.id]?.done || false,
+        weight: existing[ex.id]?.weight ?? (ex.targetWeight || ""),
+        note: existing[ex.id]?.note || "",
+      };
+    });
+    return init;
+  });
+  const [saved, setSaved] = React.useState(false);
+
+  const toggle = (id) => setData(d => ({ ...d, [id]: { ...d[id], done: !d[id].done } }));
+  const update = (id, field, val) => { setData(d => ({ ...d, [id]: { ...d[id], [field]: val } })); setSaved(false); };
+  const handleSave = () => { onSave(today, session.id, data); setSaved(true); };
+  const doneCount = Object.values(data).filter(d => d.done).length;
+
+  return (
+    <div>
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
+        <button onClick={onBack} style={{ background:"none", border:"none", color:"#aaa", cursor:"pointer", fontSize:22, padding:0 }}>←</button>
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, color:session.color, textTransform:"uppercase" }}>{session.name}</div>
+          <div style={{ fontSize:20, fontWeight:700, color:"#fff" }}>{session.focus}</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom:28 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+          <span style={{ fontSize:13, color:"#aaa" }}>Progression</span>
+          <span style={{ fontSize:13, fontWeight:700, color:session.color }}>{doneCount}/{session.exercises.length}</span>
+        </div>
+        <div style={{ height:6, background:"#2a2a3e", borderRadius:99 }}>
+          <div style={{ height:"100%", width:`${(doneCount/session.exercises.length)*100}%`, background:session.color, borderRadius:99, transition:"width 0.3s" }} />
+        </div>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:24 }}>
+        {session.exercises.map(ex => {
+          const d = data[ex.id];
+          return (
+            <div key={ex.id} style={{ background: d.done ? `${session.color}15` : "#1a1a2e", border:`1.5px solid ${d.done ? session.color : "#2a2a3e"}`, borderRadius:14, padding:"16px 18px", transition:"all 0.2s" }}>
+              <div style={{ display:"flex", alignItems:"flex-start", gap:14 }}>
+                <button onClick={() => toggle(ex.id)} style={{ width:28, height:28, borderRadius:"50%", border:`2px solid ${d.done ? session.color : "#444"}`, background: d.done ? session.color : "transparent", cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:14, marginTop:2 }}>
+                  {d.done ? "✓" : ""}
+                </button>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:15, fontWeight:600, color: d.done ? "#fff" : "#ccc", marginBottom:6 }}>{ex.name}</div>
+                  <div style={{ fontSize:12, color:"#666", marginBottom:10 }}>{ex.sets} séries × {ex.reps} reps</div>
+                  <div style={{ display:"flex", gap:10 }}>
+                    <div style={{ flex:1 }}>
+                      <label style={{ fontSize:11, color:"#666", display:"block", marginBottom:4 }}>Charge (kg)</label>
+                      <input type="number" value={d.weight} onChange={e => update(ex.id, "weight", e.target.value)} placeholder="—" style={{ width:"100%", background:"#0d0d1a", border:"1px solid #2a2a3e", borderRadius:8, padding:"6px 10px", color:"#fff", fontSize:14 }} />
+                    </div>
+                    <div style={{ flex:2 }}>
+                      <label style={{ fontSize:11, color:"#666", display:"block", marginBottom:4 }}>Note</label>
+                      <input type="text" value={d.note} onChange={e => update(ex.id, "note", e.target.value)} placeholder="Facile, dur..." style={{ width:"100%", background:"#0d0d1a", border:"1px solid #2a2a3e", borderRadius:8, padding:"6px 10px", color:"#fff", fontSize:14 }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <button onClick={handleSave} style={{ width:"100%", padding:14, background: saved ? "#2ABA6E" : session.color, border:"none", borderRadius:12, color:"#fff", fontWeight:700, fontSize:15, cursor:"pointer", transition:"background 0.3s" }}>
+        {saved ? "✓ Sauvegardé !" : "Sauvegarder la séance"}
+      </button>
+    </div>
+  );
+}
+
+function HistoryView({ history }) {
+  const entries = Object.entries(history).sort((a,b) => b[0].localeCompare(a[0]));
+  if (entries.length === 0) return (
+    <div style={{ textAlign:"center", padding:"60px 20px", color:"#444" }}>
+      <div style={{ fontSize:40, marginBottom:16 }}>📋</div>
+      <div style={{ fontSize:16 }}>Aucune séance enregistrée.</div>
+      <div style={{ fontSize:13, marginTop:8 }}>Lance ta première séance !</div>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+      {entries.map(([date, sessions]) => (
+        <div key={date} style={{ background:"#1a1a2e", borderRadius:14, padding:18 }}>
+          <div style={{ fontSize:13, color:"#aaa", marginBottom:12 }}>
+            {new Date(date).toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" })}
+          </div>
+          {Object.entries(sessions).map(([sessionId, exercises]) => {
+            const session = SESSIONS.find(s => s.id === sessionId);
+            if (!session) return null;
+            const done = Object.values(exercises).filter(e => e.done).length;
+            return (
+              <div key={sessionId} style={{ marginBottom:8 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <span style={{ fontSize:14, fontWeight:600, color:session.color }}>{session.name} — {session.focus}</span>
+                  <span style={{ fontSize:13, color:"#aaa" }}>{done}/{session.exercises.length} ✓</span>
+                </div>
+                {Object.entries(exercises).map(([exId, exData]) => {
+                  const ex = session.exercises.find(e => e.id === exId);
+                  if (!ex || !exData.done) return null;
+                  return (
+                    <div key={exId} style={{ fontSize:12, color:"#555", marginTop:3, paddingLeft:12 }}>
+                      ✓ {ex.name}{exData.weight ? ` — ${exData.weight} kg` : ""}{exData.note ? ` · ${exData.note}` : ""}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = React.useState("plan");
+  const [activeSession, setActiveSession] = React.useState(null);
+  const [history, setHistory] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem("wt_history") || "{}"); } catch { return {}; }
+  });
+
+  React.useEffect(() => {
+    try { localStorage.setItem("wt_history", JSON.stringify(history)); } catch {}
+  }, [history]);
+
+  const saveSession = (date, sessionId, data) => {
+    setHistory(h => ({ ...h, [date]: { ...(h[date] || {}), [sessionId]: data } }));
+  };
+
+  const todayName = new Date().toLocaleDateString("fr-FR", { weekday:"long" });
+  const todayPlan = WEEK_PLAN.find(w => w.day.toLowerCase() === todayName.toLowerCase());
+  const todaySession = todayPlan?.sessionId ? SESSIONS.find(s => s.id === todayPlan.sessionId) : null;
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#0d0d1a", color:"#fff", fontFamily:"-apple-system, 'Inter', system-ui, sans-serif", maxWidth:420, margin:"0 auto", padding:"0 0 80px" }}>
+      
+      <div style={{ padding:"36px 24px 0" }}>
+        <div style={{ fontSize:11, fontWeight:700, letterSpacing:3, color:"#E8642A", textTransform:"uppercase", marginBottom:4 }}>Mon Programme</div>
+        <div style={{ fontSize:26, fontWeight:800, color:"#fff" }}>Workout Tracker 💪</div>
+      </div>
+
+      {todaySession && !activeSession && (
+        <div style={{ margin:"20px 24px 0" }}>
+          <div style={{ background:`linear-gradient(135deg, ${todaySession.color}33, ${todaySession.color}11)`, border:`1.5px solid ${todaySession.color}44`, borderRadius:14, padding:"14px 18px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <div style={{ fontSize:11, color:todaySession.color, fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>Aujourd'hui</div>
+              <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginTop:2 }}>{todaySession.focus}</div>
+            </div>
+            <button onClick={() => { setActiveSession(todaySession); setTab("sessions"); }} style={{ background:todaySession.color, border:"none", borderRadius:10, padding:"8px 16px", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              C'est parti !
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding:"24px 24px 0" }}>
+        {activeSession ? (
+          <WorkoutLogger session={activeSession} onBack={() => setActiveSession(null)} history={history} onSave={saveSession} />
+        ) : (
+          <>
+            {tab === "plan" && (
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#aaa", letterSpacing:1, textTransform:"uppercase", marginBottom:16 }}>Planning semaine</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {WEEK_PLAN.map(({ day, sessionId }) => {
+                    const session = sessionId ? SESSIONS.find(s => s.id === sessionId) : null;
+                    const isToday = day.toLowerCase() === todayName.toLowerCase();
+                    return (
+                      <div key={day} style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", background: isToday ? "#1e1e35" : "#14141f", borderRadius:12, border: isToday ? "1.5px solid #333" : "1.5px solid transparent" }}>
+                        <div style={{ width:36, fontSize:13, color: isToday ? "#fff" : "#555", fontWeight: isToday ? 700 : 400 }}>{day.slice(0,3)}</div>
+                        {session ? (
+                          <>
+                            <div style={{ width:8, height:8, borderRadius:"50%", background:session.color, flexShrink:0 }} />
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:13, fontWeight:600, color:"#ddd" }}>{session.name}</div>
+                              <div style={{ fontSize:11, color:"#555" }}>{session.focus}</div>
+                            </div>
+                            <button onClick={() => setActiveSession(session)} style={{ background:`${session.color}22`, border:"none", borderRadius:8, padding:"5px 12px", color:session.color, fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                              Ouvrir
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ width:8, height:8, borderRadius:"50%", background:"#2a2a3e", flexShrink:0 }} />
+                            <div style={{ fontSize:13, color:"#444" }}>Repos</div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {tab === "sessions" && (
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#aaa", letterSpacing:1, textTransform:"uppercase", marginBottom:16 }}>Toutes les séances</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  {SESSIONS.map(s => (
+                    <button key={s.id} onClick={() => setActiveSession(s)} style={{ background:"#1a1a2e", border:`2px solid ${s.color}22`, borderRadius:16, padding:"20px 24px", cursor:"pointer", textAlign:"left", width:"100%" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <div>
+                          <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, color:s.color, textTransform:"uppercase", marginBottom:4 }}>{s.name}</div>
+                          <div style={{ fontSize:18, fontWeight:700, color:"#fff" }}>{s.focus}</div>
+                          <div style={{ fontSize:13, color:"#666", marginTop:6 }}>{s.exercises.length} exercices</div>
+                        </div>
+                        <div style={{ width:44, height:44, borderRadius:"50%", background:`${s.color}22`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, color:s.color }}>→</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "history" && (
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#aaa", letterSpacing:1, textTransform:"uppercase", marginBottom:16 }}>Historique</div>
+                <HistoryView history={history} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {!activeSession && (
+        <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:420, background:"#0d0d1a", borderTop:"1px solid #1a1a2e", display:"flex", padding:"10px 0 20px" }}>
+          {[
+            { id:"plan", label:"Planning", icon:"📅" },
+            { id:"sessions", label:"Séances", icon:"💪" },
+            { id:"history", label:"Historique", icon:"📊" },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{ flex:1, background:"none", border:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:4, padding:"6px 0" }}>
+              <span style={{ fontSize:20 }}>{t.icon}</span>
+              <span style={{ fontSize:11, fontWeight:600, color: tab === t.id ? "#E8642A" : "#444" }}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
